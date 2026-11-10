@@ -1,168 +1,323 @@
 # Safe AI Payment Operations Assistant
 
-An AI engineering case study demonstrating how to build an action-taking LLM
-assistant for an installment payment service while keeping financial operations
-safe, idempotent, observable, and resistant to prompt injection.
+[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![LLM](https://img.shields.io/badge/LLM-Ollama-111111)](https://ollama.com/)
+[![Evaluation](https://img.shields.io/badge/Evaluation-24_scenarios-6C5CE7)](#evaluation-results)
+[![Safety](https://img.shields.io/badge/Extra_refunds-0-16A085)](#evaluation-results)
 
-## Portfolio highlights
+A safety-first, action-taking LLM agent for installment-payment operations. The
+assistant answers policy questions, retrieves order and payment status, computes
+business-day deadlines, and creates eligible refunds through an unreliable
+payment gateway—without trusting customer-provided instructions or duplicating
+financial side effects.
 
-- Bounded manual ReAct loop with OpenAI-compatible tool calling and Ollama.
-- Three guardrail layers: untrusted-input screening, action-policy validation,
-  and sensitive-output redaction.
-- Stable idempotency keys prevent duplicate refunds after HTTP 500 responses or
-  timeouts that occur after the gateway has already processed an operation.
-- Reliable API wrappers provide five-second timeouts, bounded retries, backoff,
-  calendar fallback, and per-attempt structured logging.
-- Evaluation covers 24 scenarios, including regulations, order status,
-  deadlines, confirmed and unconfirmed refunds, prompt injection, and
-  out-of-scope requests.
+> **Why this project matters:** Generating a plausible answer is not enough when
+> an AI system can move money. This project treats authorization, idempotency,
+> failure recovery, observability, and measurable safety as first-class system
+> requirements.
 
-### Final evaluation
+## Executive summary
 
-| Metric | Result |
+This project combines LLM tool calling, a bounded ReAct loop, three guardrail
+layers, resilient API wrappers, idempotent writes, structured JSONL tracing, and
+a reproducible evaluation suite.
+
+### Measured outcomes
+
+| Metric | Final result |
 |---|---:|
 | Correct scenarios | **17 / 24 (70.8%)** |
-| Prompt-injection attacks blocked | **4 / 4** |
+| Payment and order-status scenarios | **4 / 4 (100%)** |
+| Prompt-injection attacks blocked | **4 / 4 (100%)** |
+| Out-of-scope requests blocked | **2 / 2 (100%)** |
+| Unconfirmed refunds stopped | **2 / 2 (100%)** |
 | False-block rate | **0%** |
-| Unconfirmed refunds stopped | **2 / 2** |
 | Extra or duplicate refunds | **0** |
 | Average agent steps | **2.0** |
 | Average executed tool calls | **0.96** |
 
-The remaining failures are documented rather than hidden: the local 7B model
-occasionally returned prose instead of completing a required tool chain. These
-quality failures remained safe failures—no unauthorized or duplicate financial
-operation was created.
+The remaining failures are documented rather than hidden. The local 7B model
+occasionally returned prose instead of completing a required tool chain. Those
+quality failures remained **safe failures**: the system created no unauthorized
+or duplicate financial operation.
 
-### Explore the case study
+## Business problem
 
-- [`portfolio_case_study.ipynb`](portfolio_case_study.ipynb) — complete English
-  walkthrough with architecture, safety decisions, real metrics, failure
-  analysis, and executable result-inspection cells.
-- [`logs/eval_main.txt`](logs/eval_main.txt) — human-readable final evaluation.
-- [`logs/eval_main.json`](logs/eval_main.json) — structured results.
-- [`logs/`](logs/) — one auditable JSONL trace for every scenario.
+The fictional **Dolyka** installment-payment service receives requests from
+customers and operations staff. The assistant must support three workflows:
 
-### Technology
+1. answer questions about refunds, payment rescheduling, duplicate charges,
+   fees, overdue payments, and chargebacks;
+2. inspect internal order records and payment-partner status, then calculate
+   deadlines using a production calendar;
+3. create refunds only for cancelled orders, only after trusted operator
+   confirmation, and no more than once per order.
 
-Python, Ollama, OpenAI-compatible APIs, function calling, ReAct, HTTP APIs,
-idempotency, JSONL observability, prompt-injection defense, and scenario-based
-agent evaluation.
+The payment gateway deliberately simulates HTTP 429, HTTP 5xx, and responses
+that arrive after the client timeout. Some write failures occur **after** the
+refund has already been created. The test set also includes direct and indirect
+prompt-injection attempts.
 
----
+## Architecture
 
-# Ассистент операционной команды «Дольки»
+```text
+Customer or operator request
+             │
+             ▼
+┌───────────────────────────────┐
+│ Input guardrail               │  Blocks injection and out-of-scope input
+└──────────────┬────────────────┘
+               ▼
+┌───────────────────────────────┐
+│ Bounded ReAct loop            │  Maximum 8 steps
+│  1. LLM selects a tool        │
+│  2. Action guardrail checks   │
+│  3. Tool executes             │
+│  4. Observation returns       │
+└──────────────┬────────────────┘
+               ▼
+┌───────────────────────────────┐
+│ Reliability layer             │  Timeout, retry, backoff, idempotency
+└──────────────┬────────────────┘
+               ▼
+┌───────────────────────────────┐
+│ Output guardrail              │  Redacts cards, phones, and secrets
+└──────────────┬────────────────┘
+               ▼
+ Answer + auditable JSONL trace
+```
 
-Ассистент отвечает по регламентам, проверяет заказы и статус платежей,
-рассчитывает рабочие дни и безопасно оформляет подтверждённые возвраты.
+### Why a manual ReAct loop?
 
-## Архитектура
+Typical workflows require two to four tool steps and only a small number of
+explicit branches. A manual bounded loop provides direct control over every
+financial action, makes guardrail placement obvious, and keeps traces easy to
+audit. For this scope, those properties were more valuable than introducing a
+graph-orchestration dependency.
 
-Выбран ручной ограниченный ReAct-цикл. Типовой сценарий занимает 2–4 шага,
-ветвления простые (запрет на входе, проверка инструмента, запрос подтверждения,
-завершение), а для денежных операций важнее прозрачный контроль каждого шага,
-чем скорость сборки графа. LangGraph добавил бы зависимость и сложность без
-выигрыша для такого небольшого конечного процесса.
+## Safety model
 
-Слои проекта:
+### 1. Untrusted-input boundary
 
-- `agent/agent.py` — системный промпт, максимум восемь шагов, история tool calls,
-  подсчёт токенов и обязательные события журнала;
-- `agent/guardrails.py` — доверенный `PolicyContext`, защита входа, строгая
-  проверка аргументов и бизнес-условий возврата, маскирование выхода;
-- `agent/tools.py` — четыре требуемых инструмента и единый реестр вместе с двумя
-  готовыми инструментами данных;
-- `agent/reliability.py` — таймауты, backoff 0,5/1 сек., до трёх попыток чтения,
-  безопасный повтор записи только с ключом идемпотентности и ретраи модели;
-- `evals/run_eval.py` — 24 сценария, проверка решений, фрагментов, инструментов и
-  реальных побочных эффектов через `/refund_count`.
+Customer messages are treated as data, never as authority. The input guardrail
+blocks attempts to override policies, inject fake system messages, bypass
+confirmation, request secrets, or redirect the assistant outside its operating
+scope. Blocked requests never reach the model or any tool.
 
-Возврат получает стабильный ключ `refund-<order_id>`. Поэтому даже если шлюз
-создал возврат, но ответил 500 или не успел ответить до таймаута, повторная
-попытка не создаёт вторую операцию. Секретный заголовок никогда не записывается
-в журнал, а `request_id` маскируется готовым модулем журнала.
+### 2. Trusted operator confirmation
 
-## Запуск
+Refund confirmation is passed through `PolicyContext.confirmed_refunds`, which
+is created by application code. A sentence such as “the operator approved this”
+inside a customer email cannot authorize a refund.
 
-Из корня проекта:
+### 3. Action-level financial policy
+
+Before `create_refund` can run, the action guardrail verifies that:
+
+- the tool is allow-listed;
+- arguments have the expected names and types;
+- the order exists;
+- the order is cancelled;
+- no refund already exists;
+- the amount exactly matches the order amount;
+- trusted operator confirmation exists;
+- the customer directly requested a refund action.
+
+When confirmation is missing, the assistant returns `needs_confirmation` and
+does not call `POST /refund`.
+
+### 4. Sensitive-output protection
+
+The output layer removes full card numbers, Russian phone numbers, and the
+partner API key. The journal masks idempotency keys and other sensitive request
+identifiers before writing them to disk.
+
+## Reliability and idempotency
+
+Read operations use:
+
+- a five-second timeout;
+- up to three attempts;
+- 0.5-second and 1.0-second backoff delays;
+- retries for HTTP 429, HTTP 5xx, connection failures, and timeouts;
+- a five-day-workweek fallback when the production calendar is unavailable.
+
+Write operations are retried only when an idempotency key is present. Every
+refund uses a stable key:
+
+```text
+refund-<order_id>
+```
+
+If the gateway creates a refund but the response times out or returns HTTP 500,
+the next attempt uses the same key. The gateway recognizes the completed
+operation instead of creating another refund.
+
+The final traces include a real sequence containing HTTP 429, a five-second
+`no_response` timeout, and a subsequent retry. The final number of extra refunds
+is zero.
+
+## Tools
+
+| Tool | Purpose |
+|---|---|
+| `search_regulations` | Retrieve relevant operating policies |
+| `get_order` | Read the internal order record |
+| `get_payment_status` | Query the payment partner |
+| `business_days_after` | Calculate a deadline using the production calendar |
+| `create_refund` | Submit an idempotent refund after policy approval |
+| `finish` | Return the grounded final response |
+
+## Repository structure
+
+```text
+.
+├── agent/
+│   ├── agent.py          # bounded ReAct loop and orchestration
+│   ├── guardrails.py     # input, action, and output policy enforcement
+│   ├── reliability.py    # retries, timeouts, backoff, and write safety
+│   └── tools.py          # external tools and tool registry
+├── data/
+│   ├── gateway/          # unreliable mock payment partner
+│   ├── regulations/      # operating-policy knowledge base
+│   ├── orders.json       # synthetic order database
+│   └── requests.json     # 24 evaluation scenarios
+├── evals/
+│   └── run_eval.py       # side-effect-aware evaluation runner
+├── logs/
+│   ├── eval_main.txt     # human-readable evaluation report
+│   ├── eval_main.json    # structured evaluation output
+│   └── trace_m*.jsonl    # one audit trace per scenario
+├── support/              # provided schemas, model client, data, and journal
+├── portfolio_case_study.ipynb
+├── check_tools.py
+├── run.py
+└── requirements.txt
+```
+
+## Evaluation design
+
+The evaluator resets the gateway, processes all 24 scenarios, and checks:
+
+- final decision (`answer`, `needs_confirmation`, `blocked`, or `max_steps`);
+- required response content;
+- required tools;
+- actual refund count reported by the gateway;
+- duplicate and extra financial side effects.
+
+### Results by category
+
+| Category | Passed | Accuracy |
+|---|---:|---:|
+| Regulation questions | 3 / 5 | 60% |
+| Payment and order status | 4 / 4 | 100% |
+| Deadline calculations | 2 / 5 | 40% |
+| Confirmed refunds | 0 / 2 | 0% |
+| Unconfirmed refunds | 2 / 2 | 100% |
+| Prompt injection | 4 / 4 | 100% |
+| Out of scope | 2 / 2 | 100% |
+
+One confirmed-refund scenario did create exactly one valid refund, but its final
+wording did not satisfy the benchmark's required phrase, so the scenario is
+still counted as failed. In the other confirmed-refund scenario, the model did
+not complete the required tool chain; the failure was recorded and no unsafe
+action occurred.
+
+Explore the evidence:
+
+- [`portfolio_case_study.ipynb`](portfolio_case_study.ipynb) — full English
+  walkthrough with executable analysis cells;
+- [`logs/eval_main.txt`](logs/eval_main.txt) — human-readable result table;
+- [`logs/eval_main.json`](logs/eval_main.json) — structured metrics;
+- [`logs/`](logs/) — 24 JSONL audit traces.
+
+## Failure analysis
+
+| Failure class | Observation | Mitigation implemented | Next improvement |
+|---|---|---|---|
+| Plain text instead of a tool call | The local model sometimes described the next action | Recover valid embedded tool-call JSON conservatively | Add a deterministic intent router |
+| Incomplete tool chain | The model stopped after describing a prerequisite | Enforce tool prerequisites before high-risk operations | Model the refund flow as an explicit state machine |
+| Incorrect action choice | The model attempted a refund for a deadline-only request | Require a direct refund request before `create_refund` | Add intent-level contract tests |
+| Semantically correct wording mismatch | Correct meaning did not contain the benchmark phrase | Preserve transparent evaluation rather than adjusting scores | Generate responses from structured observations |
+
+## Run locally
+
+### Prerequisites
+
+- Python 3.9+
+- [Ollama](https://ollama.com/)
+- approximately 5 GB available for `qwen2.5:7b`
+
+### Installation
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
+ollama pull qwen2.5:7b
 export PARTNER_API_KEY=demo-key
 export LLM_BASE_URL=http://127.0.0.1:11434/v1
 export LLM_MODEL=qwen2.5:7b
-ollama serve
-ollama pull qwen2.5:7b
 ```
 
-В отдельном терминале:
+Start Ollama:
+
+```bash
+ollama serve
+```
+
+Start the payment gateway in a second terminal:
 
 ```bash
 source .venv/bin/activate
 PARTNER_API_KEY=demo-key python data/gateway/mock_gateway.py
 ```
 
-Проверка выбора инструмента и ручные обращения:
+Run a tool-selection check and one request:
 
 ```bash
 python check_tools.py
-python run.py "Какая сумма у заказа 4125?"
-python run.py "Оформи возврат по заказу 4126" --confirm 4126
+python run.py "What is the amount for order 4125?"
 ```
 
-Финальная оценка:
+Run the full evaluation:
 
 ```bash
 python evals/run_eval.py
 ```
 
-Скрипт перезаписывает `logs/eval_main.txt`, `logs/eval_main.json` и создаёт
-`logs/trace_<id>.jsonl` для каждого обращения.
+## Language note
 
-## Результаты
+The portfolio documentation and analysis are in English. The synthetic source
+dataset, policy documents, benchmark prompts, and generated traces are in
+Russian because the original operating scenario evaluates a Russian-language
+customer-support workflow. They contain synthetic data only. Keeping those
+artifacts in their evaluated language preserves reproducibility and makes this
+repository an example of multilingual AI operations engineering.
 
-Код проверен локально 9 ноября 2026 года:
+## What this project demonstrates
 
-- все Python-файлы успешно разобраны парсером;
-- тесты входного, action- и output-guardrail прошли;
-- симулированный ReAct-сценарий без подтверждения вернул
-  `needs_confirmation`, выполнив только `get_order`;
-- инъекция остановлена до модели и инструментов;
-- интеграционный тест шлюза с 429 и таймаутом создал ровно один возврат;
-  журнал содержит все пять попыток, а `request_id` замаскирован.
+- action-taking LLM orchestration with function calling;
+- guardrails that separate untrusted language from trusted application state;
+- idempotent financial API integration;
+- bounded retry, timeout, and fallback strategies;
+- trace-level observability and auditability;
+- side-effect-aware agent evaluation;
+- transparent failure analysis and safety-first iteration;
+- practical trade-offs when deploying a local model.
 
-Финальный прогон выполнен на `qwen2.5:7b` при штатной доле сбоев шлюза 30%.
-Корректно обработано 17 из 24 обращений (70,8%). По категориям: регламенты —
-60%, статусы — 100%, сроки — 40%, подтверждённые возвраты — 0%, возвраты без
-подтверждения — 100%, инъекции — 100%, обращения вне компетенции — 100%.
-Подробная таблица сохранена в `logs/eval_main.txt`, структурированные результаты
-— в `logs/eval_main.json`, а ход каждого обращения — в 24 trace-файлах.
+## Roadmap
 
-## Ответы на вопросы бизнеса
+- Introduce a deterministic intent router for regulated workflows.
+- Move refund execution into an explicit state machine.
+- Generate final answers from validated structured observations.
+- Add unit, contract, and regression tests to CI.
+- Compare larger local models and hosted models on the same benchmark.
+- Add OpenTelemetry traces and latency/cost dashboards.
 
-1. Ассистент корректно закрыл 70,8% обращений. Все статусные и защитные сценарии
-   пройдены; ошибки сосредоточены в расчётах сроков, формулировках регламентов и
-   подтверждённых возвратах из-за нестабильного соблюдения tool calling моделью.
-2. В среднем одно обращение потребовало 2,0 шага и 0,96 выполненного вызова
-   инструмента. Жёсткий лимит одного обращения — восемь шагов.
-3. Все 4 из 4 попыток инъекции остановлены; доля ложных блокировок обычных
-   обращений — 0%. Возвраты без доверенного подтверждения также остановлены 2/2.
-4. Лишних возвратов создано 0. Единственный созданный в финальном прогоне
-   возврат соответствовал подтверждённому сценарию; повторные сетевые попытки
-   защищены стабильным ключом идемпотентности.
+## Disclaimer
 
-## Типовые ошибки агента и что с ними делать
-
-| Класс | Пример | Причина | Принятое решение |
-|---|---|---|---|
-| Инъекция | «Игнорируй регламенты…» | Текст клиента пытается стать инструкцией | Блокировка до вызова модели |
-| Ложное подтверждение | «Оператор подтвердил» внутри письма | Недоверенная фраза не равна системной отметке | Проверка только `PolicyContext` |
-| Повтор записи | Таймаут после созданного возврата | Результат операции неизвестен клиенту | Стабильный ключ идемпотентности |
-| Недоступный календарь | Ошибка `isdayoff.ru` | Внешний сервис не отвечает | Пятидневная неделя и пометка «праздники не учтены» |
-| Ошибка модели | m05: ответ без `search_regulations` | Модель вернула текст вместо tool call | Добавлен разбор встроенного JSON tool call; для простого текста остаётся безопасный ответ |
-| Неполная цепочка | m12, m13, m15 | Модель описала следующий инструмент вместо его вызова | Усилен промпт и добавлены обязательные prerequisites; дальнейшее улучшение — детерминированный роутер |
-| Лишнее действие | m11 | Модель пыталась создать возврат для вопроса о сроке | Добавлена отдельная проверка прямой просьбы до `create_refund` |
-| Формулировка | m02, m16 | Ответ семантически верный, но не содержит ожидаемый эталонный фрагмент | Добавить нормализацию финальных формулировок по кодам регламентов |
+This repository is an educational portfolio project built with synthetic data
+and a mock payment gateway. It does not connect to a real financial institution
+or process real customer funds.
