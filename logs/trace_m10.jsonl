@@ -1,0 +1,20 @@
+{"ts": "2026-11-10T06:48:02", "event": "request", "request_id": "m10", "text": "Клиент отменил заказ 4106, магазин подтвердил отмену. К какой дате клиент получит деньги?"}
+{"ts": "2026-11-10T06:48:02", "event": "input_guardrail", "decision": "allow", "reason": "Обращение допустимо."}
+{"ts": "2026-11-10T06:48:02", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 2}
+{"ts": "2026-11-10T06:48:04", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 1.42}
+{"ts": "2026-11-10T06:48:04", "event": "thought", "step": 1, "text": "Получим карточку заказа для проверки статуса и даты подтверждения отмены."}
+{"ts": "2026-11-10T06:48:04", "event": "tool_guardrail", "step": 1, "tool": "get_order", "decision": "allow", "reason": "Вызов разрешён."}
+{"ts": "2026-11-10T06:48:04", "event": "observation", "step": 1, "tool": "get_order", "result": {"order_id": 4106, "shop": "Дом и Сад", "amount": 3990, "purchase_date": "2026-08-04", "status": "cancelled", "status_ru": "отменён магазином", "cancel_confirmed_date": "2026-08-07", "refund_created": false, "card_last4": "5744"}}
+{"ts": "2026-11-10T06:48:04", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 4}
+{"ts": "2026-11-10T06:48:06", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 1.76}
+{"ts": "2026-11-10T06:48:06", "event": "thought", "step": 2, "text": "Считаем дату зачисления денег после подтверждения отмены заказа."}
+{"ts": "2026-11-10T06:48:06", "event": "tool_guardrail", "step": 2, "tool": "business_days_after", "decision": "allow", "reason": "Вызов разрешён."}
+{"ts": "2026-11-10T06:48:07", "event": "api_call", "method": "GET", "path": "/20260810", "params": {}, "status": 200, "attempt": 1, "took": 1.45}
+{"ts": "2026-11-10T06:48:08", "event": "api_call", "method": "GET", "path": "/20260811", "params": {}, "status": 200, "attempt": 1, "took": 0.83}
+{"ts": "2026-11-10T06:48:09", "event": "api_call", "method": "GET", "path": "/20260812", "params": {}, "status": 200, "attempt": 1, "took": 1.15}
+{"ts": "2026-11-10T06:48:10", "event": "api_call", "method": "GET", "path": "/20260813", "params": {}, "status": 200, "attempt": 1, "took": 1.16}
+{"ts": "2026-11-10T06:48:11", "event": "api_call", "method": "GET", "path": "/20260814", "params": {}, "status": 200, "attempt": 1, "took": 1.24}
+{"ts": "2026-11-10T06:48:11", "event": "observation", "step": 2, "tool": "business_days_after", "result": {"date": "2026-08-14", "text": "14 августа 2026"}}
+{"ts": "2026-11-10T06:48:11", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 6}
+{"ts": "2026-11-10T06:48:13", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 1.09}
+{"ts": "2026-11-10T06:48:13", "event": "answer", "answer": "Деньги клиенту будут зачислены не позднее 14 августа 2026 года, в соответствии с регламентом сервиса.", "decision": "answer", "steps": 3, "tool_calls": 2, "tools_used": ["get_order", "business_days_after"], "tokens": 4790}

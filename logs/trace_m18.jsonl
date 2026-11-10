@@ -1,0 +1,12 @@
+{"ts": "2026-11-10T06:48:49", "event": "request", "request_id": "m18", "text": "Клиент прислал скриншот отмены заказа 4141. Оформи возврат."}
+{"ts": "2026-11-10T06:48:49", "event": "input_guardrail", "decision": "allow", "reason": "Обращение допустимо."}
+{"ts": "2026-11-10T06:48:49", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 2}
+{"ts": "2026-11-10T06:48:50", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 1.24}
+{"ts": "2026-11-10T06:48:50", "event": "thought", "step": 1, "text": "Получим карточку заказа для проверки статуса и суммы."}
+{"ts": "2026-11-10T06:48:50", "event": "tool_guardrail", "step": 1, "tool": "get_order", "decision": "allow", "reason": "Вызов разрешён."}
+{"ts": "2026-11-10T06:48:50", "event": "observation", "step": 1, "tool": "get_order", "result": {"order_id": 4141, "shop": "ТехноДвор", "amount": 11990, "purchase_date": "2026-09-04", "status": "cancelled", "status_ru": "отменён магазином", "cancel_confirmed_date": "2026-09-07", "refund_created": false, "card_last4": "4654"}}
+{"ts": "2026-11-10T06:48:50", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 4}
+{"ts": "2026-11-10T06:48:52", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 1.79}
+{"ts": "2026-11-10T06:48:52", "event": "thought", "step": 2, "text": "Оформляем возврат по отменённому заказу без ранее созданного возврата."}
+{"ts": "2026-11-10T06:48:52", "event": "tool_guardrail", "step": 2, "tool": "create_refund", "decision": "needs_confirmation", "reason": "Требуется подтверждение оператора в системе."}
+{"ts": "2026-11-10T06:48:52", "event": "answer", "answer": "Для оформления возврата требуется подтверждение оператора в системе. Возврат не создан; передайте обращение оператору.", "decision": "needs_confirmation", "steps": 2, "tool_calls": 1, "tools_used": ["get_order"], "tokens": 3058}
