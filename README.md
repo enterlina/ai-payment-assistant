@@ -1,4 +1,4 @@
-# Safe AI Payment Operations Assistant
+# AI Payment Assistant
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![LLM](https://img.shields.io/badge/LLM-Ollama-111111)](https://ollama.com/)
