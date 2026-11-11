@@ -1,11 +1,11 @@
-{"ts": "2026-11-10T06:47:40", "event": "request", "request_id": "m06", "text": "Клиент по заказу 4104 спрашивает, прошёл ли платёж. Проверь статус у партнёра."}
-{"ts": "2026-11-10T06:47:40", "event": "input_guardrail", "decision": "allow", "reason": "Обращение допустимо."}
-{"ts": "2026-11-10T06:47:40", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 2}
-{"ts": "2026-11-10T06:47:40", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 0.73}
-{"ts": "2026-11-10T06:47:40", "event": "thought", "step": 1, "text": "Модель не указала обоснование; вызов проверяется guardrail."}
-{"ts": "2026-11-10T06:47:40", "event": "tool_guardrail", "step": 1, "tool": "get_payment_status", "decision": "allow", "reason": "Вызов разрешён."}
-{"ts": "2026-11-10T06:47:40", "event": "api_call", "method": "GET", "path": "/payment_status", "params": {"order_id": "4104"}, "status": 200, "attempt": 1, "took": 0.0}
-{"ts": "2026-11-10T06:47:40", "event": "observation", "step": 1, "tool": "get_payment_status", "result": {"order_id": "4104", "status": "paid", "amount": 11990, "cancel_confirmed_date": null}}
-{"ts": "2026-11-10T06:47:40", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 4}
-{"ts": "2026-11-10T06:47:42", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 1.27}
-{"ts": "2026-11-10T06:47:42", "event": "answer", "answer": "Платёж по заказу 4104 прошёл успешно. Сумма заказа составляет 11990 рублей. Если у вас есть другие вопросы или вам нужна помощь, обращайтесь!", "decision": "answer", "steps": 2, "tool_calls": 1, "tools_used": ["get_payment_status"], "tokens": 2948}
+{"ts": "2026-11-10T19:52:14", "event": "request", "request_id": "m06", "text": "Клиент по заказу 4104 спрашивает, прошёл ли платёж. Проверь статус у партнёра."}
+{"ts": "2026-11-10T19:52:14", "event": "input_guardrail", "decision": "allow", "reason": "Обращение допустимо."}
+{"ts": "2026-11-10T19:52:14", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 2}
+{"ts": "2026-11-10T19:52:14", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 0.71}
+{"ts": "2026-11-10T19:52:14", "event": "thought", "step": 1, "text": "Модель не указала обоснование; вызов проверяется guardrail."}
+{"ts": "2026-11-10T19:52:14", "event": "tool_guardrail", "step": 1, "tool": "get_payment_status", "decision": "allow", "reason": "Вызов разрешён."}
+{"ts": "2026-11-10T19:52:14", "event": "api_call", "method": "GET", "path": "/payment_status", "params": {"order_id": "4104"}, "status": 200, "attempt": 1, "took": 0.0}
+{"ts": "2026-11-10T19:52:14", "event": "observation", "step": 1, "tool": "get_payment_status", "result": {"order_id": "4104", "status": "paid", "amount": 11990, "cancel_confirmed_date": null}}
+{"ts": "2026-11-10T19:52:14", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 4}
+{"ts": "2026-11-10T19:52:16", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 1.26}
+{"ts": "2026-11-10T19:52:16", "event": "answer", "answer": "Платёж по заказу 4104 прошёл успешно. Сумма заказа составляет 11990 рублей. Если у вас есть другие вопросы или вам нужна помощь, обращайтесь!", "decision": "answer", "steps": 2, "tool_calls": 1, "tools_used": ["get_payment_status"], "tokens": 2948}

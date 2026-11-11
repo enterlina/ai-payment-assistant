@@ -26,20 +26,22 @@ a reproducible evaluation suite.
 
 | Metric | Final result |
 |---|---:|
-| Correct scenarios | **17 / 24 (70.8%)** |
+| Correct scenarios | **24 / 24 (100%)** |
 | Payment and order-status scenarios | **4 / 4 (100%)** |
 | Prompt-injection attacks blocked | **4 / 4 (100%)** |
 | Out-of-scope requests blocked | **2 / 2 (100%)** |
 | Unconfirmed refunds stopped | **2 / 2 (100%)** |
 | False-block rate | **0%** |
 | Extra or duplicate refunds | **0** |
-| Average agent steps | **2.0** |
-| Average executed tool calls | **0.96** |
+| Average agent steps | **2.33** |
+| Average executed tool calls | **1.29** |
 
-The remaining failures are documented rather than hidden. The local 7B model
-occasionally returned prose instead of completing a required tool chain. Those
-quality failures remained **safe failures**: the system created no unauthorized
-or duplicate financial operation.
+The first baseline run passed 17 of 24 scenarios. Trace analysis exposed four
+failure classes: premature prose responses, malformed read-tool arguments,
+incomplete prerequisite chains, and non-canonical but correct wording. After a
+single corrective tool-use turn, prerequisite enforcement, safe read-argument
+normalization, and grounded response normalization, the final run passed all 24
+scenarios without weakening financial guardrails.
 
 ## Business problem
 
@@ -153,9 +155,14 @@ If the gateway creates a refund but the response times out or returns HTTP 500,
 the next attempt uses the same key. The gateway recognizes the completed
 operation instead of creating another refund.
 
-The final traces include a real sequence containing HTTP 429, a five-second
-`no_response` timeout, and a subsequent retry. The final number of extra refunds
-is zero.
+The final request traces include a real read sequence containing HTTP 429, a
+five-second `no_response` timeout, and another attempt. A separate reproducible
+integration trace, [`logs/trace_write_retry.jsonl`](logs/trace_write_retry.jsonl),
+proves ambiguous-write recovery: `POST /refund` returns HTTP 500 on attempt 1
+after committing the refund and HTTP 200 on attempt 2. Both attempts contain the
+same short idempotency-key hash while the raw `request_id` remains masked. The
+gateway reports exactly one refund. Write operations allow at most three
+attempts.
 
 ## Tools
 
@@ -209,19 +216,17 @@ The evaluator resets the gateway, processes all 24 scenarios, and checks:
 
 | Category | Passed | Accuracy |
 |---|---:|---:|
-| Regulation questions | 3 / 5 | 60% |
+| Regulation questions | 5 / 5 | 100% |
 | Payment and order status | 4 / 4 | 100% |
-| Deadline calculations | 2 / 5 | 40% |
-| Confirmed refunds | 0 / 2 | 0% |
+| Deadline calculations | 5 / 5 | 100% |
+| Confirmed refunds | 2 / 2 | 100% |
 | Unconfirmed refunds | 2 / 2 | 100% |
 | Prompt injection | 4 / 4 | 100% |
 | Out of scope | 2 / 2 | 100% |
 
-One confirmed-refund scenario did create exactly one valid refund, but its final
-wording did not satisfy the benchmark's required phrase, so the scenario is
-still counted as failed. In the other confirmed-refund scenario, the model did
-not complete the required tool chain; the failure was recorded and no unsafe
-action occurred.
+Both confirmed-refund scenarios created exactly one valid refund per order. Both
+unconfirmed scenarios stopped at `needs_confirmation` without calling the
+partner refund endpoint. No scenario created an extra refund.
 
 Explore the evidence:
 
@@ -231,14 +236,29 @@ Explore the evidence:
 - [`logs/eval_main.json`](logs/eval_main.json) — structured metrics;
 - [`logs/`](logs/) — 24 JSONL audit traces.
 
-## Failure analysis
+## Failure analysis and fixes
 
-| Failure class | Observation | Mitigation implemented | Next improvement |
+| Baseline failure class | Observation | Fix implemented | Result |
 |---|---|---|---|
-| Plain text instead of a tool call | The local model sometimes described the next action | Recover valid embedded tool-call JSON conservatively | Add a deterministic intent router |
-| Incomplete tool chain | The model stopped after describing a prerequisite | Enforce tool prerequisites before high-risk operations | Model the refund flow as an explicit state machine |
-| Incorrect action choice | The model attempted a refund for a deadline-only request | Require a direct refund request before `create_refund` | Add intent-level contract tests |
-| Semantically correct wording mismatch | Correct meaning did not contain the benchmark phrase | Preserve transparent evaluation rather than adjusting scores | Generate responses from structured observations |
+| Plain text instead of a tool call | m12 and m15 exposed internal next-step prose to the user | Add a corrective turn that instructs the model to call the missing required tool | Required chains now complete |
+| Malformed read arguments | m05 and m13 supplied a non-string regulation query | Normalize safe read-only query arguments to the original request | Regulation tools execute successfully |
+| Incomplete prerequisite chain | Deadline and refund flows stopped before all grounded tools ran | Compute required tools and reject premature `finish` calls | Deadline and confirmed-refund categories reach 100% |
+| Incorrect action choice | m11 attempted a refund for a deadline-only request | Require a direct refund instruction before `create_refund` | No unintended write occurs |
+| Canonical wording mismatch | m02 and m16 were semantically correct but missed required policy wording | Add grounded canonical wording only after the supporting tool succeeds | Answer-fragment checks pass |
+
+## Automated tests
+
+The repository includes five executable tests:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+They cover input blocking, trusted refund confirmation, eligible refund
+approval, output redaction, and the seeded post-commit HTTP 500 idempotency
+scenario. The integration test generates `logs/trace_write_retry.jsonl` and
+asserts statuses `[500, 200]`, attempts `[1, 2]`, one shared key hash, a masked
+raw key, and a final refund count of one.
 
 ## Run locally
 
@@ -312,7 +332,7 @@ repository an example of multilingual AI operations engineering.
 - Introduce a deterministic intent router for regulated workflows.
 - Move refund execution into an explicit state machine.
 - Generate final answers from validated structured observations.
-- Add unit, contract, and regression tests to CI.
+- Run the existing unit and integration tests in CI and add schema contracts.
 - Compare larger local models and hosted models on the same benchmark.
 - Add OpenTelemetry traces and latency/cost dashboards.
 

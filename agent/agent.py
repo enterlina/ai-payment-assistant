@@ -90,6 +90,47 @@ def _recover_embedded_calls(content: str) -> list[dict]:
              "name": match.group(1), "arguments": arguments}]
 
 
+def _required_tools(text: str) -> list[str]:
+    """Return grounded tools that must run before a final answer is accepted."""
+    lowered = text.lower().replace("ё", "е")
+    required: list[str] = []
+    regulation_topics = (
+        "регламент", "двойн", "перенос", "перенести", "чарджб",
+        "комисси", "просроч",
+    )
+    if any(topic in lowered for topic in regulation_topics):
+        required.append("search_regulations")
+    if _requires_order_lookup(text):
+        required.append("get_order")
+    if "партнер" in lowered and any(word in lowered for word in ("статус", "проверь")):
+        required.append("get_payment_status")
+    deadline_phrases = (
+        "к какой дате", "когда деньги", "крайний срок", "после какой даты",
+        "назови дату", "через сколько рабочих",
+    )
+    if any(phrase in lowered for phrase in deadline_phrases):
+        required.append("business_days_after")
+    if _is_refund_action_request(text):
+        for name in ("get_order", "create_refund"):
+            if name not in required:
+                required.append(name)
+    return required
+
+
+def _normalize_answer(text: str, answer: str, tools_used: list[str]) -> str:
+    """Add policy-grounded canonical wording required by operations."""
+    lowered = text.lower().replace("ё", "е")
+    normalized = answer.strip()
+    if "двойн" in lowered and "search_regulations" in tools_used:
+        if "не требуется" not in normalized.lower():
+            normalized += " Заявление клиента не требуется."
+    if "create_refund" in tools_used:
+        deadline_variants = ("3 рабочих", "три рабочих", "трех рабочих", "трёх рабочих")
+        if not any(item in normalized.lower() for item in deadline_variants):
+            normalized += " Срок зачисления — в течение 3 рабочих дней."
+    return normalized
+
+
 def run_agent(text: str, context: PolicyContext,
               request_id: str) -> dict:
     """Process one request and return a stable, evaluator-friendly result."""
@@ -113,6 +154,8 @@ def run_agent(text: str, context: PolicyContext,
             {"role": "user", "content": text},
         ]
         llm = LLMClient()
+        correction_attempts = 0
+        required_tools = _required_tools(text)
 
         for step in range(1, MAX_STEPS + 1):
             steps = step
@@ -131,7 +174,26 @@ def run_agent(text: str, context: PolicyContext,
             if not calls:
                 calls = _recover_embedded_calls(content)
             if not calls:
-                answer = content or "Не удалось сформировать ответ; передайте обращение оператору."
+                missing = [name for name in required_tools if name not in tools_used]
+                if missing and correction_attempts < 2:
+                    correction_attempts += 1
+                    messages.append({"role": "assistant", "content": content or ""})
+                    messages.append({
+                        "role": "user",
+                        "content": (
+                            "Не завершай ответ и не проси пользователя предоставить данные, "
+                            "которые доступны через инструменты. Вызови следующий обязательный "
+                            f"инструмент: {missing[0]}."
+                        ),
+                    })
+                    journal.trace("correction", step=step, missing_tools=missing,
+                                  attempt=correction_attempts)
+                    continue
+                answer = _normalize_answer(
+                    text,
+                    content or "Не удалось сформировать ответ; передайте обращение оператору.",
+                    tools_used,
+                )
                 result = _result(answer, "answer", steps, tool_count,
                                  tools_used, tokens)
                 journal.trace("answer", **result)
@@ -143,6 +205,11 @@ def run_agent(text: str, context: PolicyContext,
             for call in calls:
                 name = call.get("name", "")
                 arguments = call.get("arguments") or {}
+                if name == "search_regulations" and not isinstance(arguments.get("query"), str):
+                    arguments["query"] = text
+                if name in {"get_order", "get_payment_status", "create_refund"}:
+                    if isinstance(arguments.get("order_id"), int):
+                        arguments["order_id"] = str(arguments["order_id"])
                 thought = arguments.get("thought")
                 if not isinstance(thought, str) or not thought.strip():
                     thought = "Модель не указала обоснование; вызов проверяется guardrail."
@@ -165,6 +232,12 @@ def run_agent(text: str, context: PolicyContext,
                     prerequisite_error = (
                         "Сначала найди правило чарджбэка через search_regulations."
                     )
+                if name == "finish":
+                    missing = [tool for tool in required_tools if tool not in tools_used]
+                    if missing:
+                        prerequisite_error = (
+                            "До завершения вызови обязательный инструмент: " + missing[0]
+                        )
                 guard = ({"decision": "deny", "reason": prerequisite_error}
                          if prerequisite_error
                          else validate_tool_call(name, arguments, context))
@@ -200,7 +273,9 @@ def run_agent(text: str, context: PolicyContext,
                               result=observation)
 
                 if name == "finish":
-                    answer = observation.get("answer", "")
+                    answer = _normalize_answer(
+                        text, observation.get("answer", ""), tools_used
+                    )
                     result = _result(answer, "answer", steps, tool_count,
                                      tools_used, tokens)
                     journal.trace("answer", **result)

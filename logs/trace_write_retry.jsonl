@@ -1,0 +1,2 @@
+{"ts": "2026-11-11T01:10:24", "event": "api_call", "method": "POST", "path": "/refund", "params": {"order_id": "4126", "amount": 3990, "request_id": "***", "idempotency_key_hash": "01a8d7390ffb"}, "status": 500, "attempt": 1, "took": 0.01}
+{"ts": "2026-11-11T01:10:25", "event": "api_call", "method": "POST", "path": "/refund", "params": {"order_id": "4126", "amount": 3990, "request_id": "***", "idempotency_key_hash": "01a8d7390ffb"}, "status": 200, "attempt": 2, "took": 0.01}

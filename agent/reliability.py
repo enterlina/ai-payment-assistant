@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import time
 from urllib.parse import urlparse
 
@@ -58,6 +59,11 @@ def write_with_check(url: str, payload: dict, request_id: str | None,
     body = dict(payload)
     if request_id:
         body["request_id"] = request_id
+    log_params = dict(body)
+    if request_id:
+        log_params["idempotency_key_hash"] = hashlib.sha256(
+            request_id.encode("utf-8")
+        ).hexdigest()[:12]
     attempts = 3 if request_id else 1
     for attempt in range(1, attempts + 1):
         started = time.monotonic()
@@ -65,7 +71,7 @@ def write_with_check(url: str, payload: dict, request_id: str | None,
             response = requests.post(url, json=body, headers=headers or {},
                                      timeout=5)
             took = time.monotonic() - started
-            journal.log_call("POST", _path(url), body,
+            journal.log_call("POST", _path(url), log_params,
                              response.status_code, attempt, took)
             if response.ok:
                 try:
@@ -76,7 +82,7 @@ def write_with_check(url: str, payload: dict, request_id: str | None,
                 return None
         except (requests.Timeout, requests.ConnectionError) as exc:
             took = time.monotonic() - started
-            journal.log_call("POST", _path(url), body,
+            journal.log_call("POST", _path(url), log_params,
                              "no_response", attempt, took)
         if attempt < attempts:
             time.sleep(DELAYS[attempt - 1])

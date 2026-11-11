@@ -1,25 +1,25 @@
-{"ts": "2026-11-10T06:48:18", "event": "request", "request_id": "m13", "text": "Клиент просит выписку для чарджбэка. Через сколько рабочих дней она будет готова, если запрос ушёл сегодня, 14 сентября 2026?"}
-{"ts": "2026-11-10T06:48:18", "event": "input_guardrail", "decision": "allow", "reason": "Обращение допустимо."}
-{"ts": "2026-11-10T06:48:18", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 2}
-{"ts": "2026-11-10T06:48:19", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 0.97}
-{"ts": "2026-11-10T06:48:19", "event": "thought", "step": 1, "text": "Модель не указала обоснование; вызов проверяется guardrail."}
-{"ts": "2026-11-10T06:48:19", "event": "tool_guardrail", "step": 1, "tool": "business_days_after", "decision": "deny", "reason": "Сначала найди правило чарджбэка через search_regulations."}
-{"ts": "2026-11-10T06:48:19", "event": "observation", "step": 1, "tool": "business_days_after", "result": {"error": "Сначала найди правило чарджбэка через search_regulations."}}
-{"ts": "2026-11-10T06:48:19", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 4}
-{"ts": "2026-11-10T06:48:20", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 1.54}
-{"ts": "2026-11-10T06:48:20", "event": "thought", "step": 2, "text": "Модель не указала обоснование; вызов проверяется guardrail."}
-{"ts": "2026-11-10T06:48:20", "event": "tool_guardrail", "step": 2, "tool": "search_regulations", "decision": "deny", "reason": "Неверный тип аргумента query."}
-{"ts": "2026-11-10T06:48:20", "event": "observation", "step": 2, "tool": "search_regulations", "result": {"error": "Неверный тип аргумента query."}}
-{"ts": "2026-11-10T06:48:20", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 6}
-{"ts": "2026-11-10T06:48:22", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 2.31}
-{"ts": "2026-11-10T06:48:22", "event": "thought", "step": 3, "text": "Нужно найти правило по чарджбэку для определения срока."}
-{"ts": "2026-11-10T06:48:22", "event": "tool_guardrail", "step": 3, "tool": "search_regulations", "decision": "deny", "reason": "Неверный тип аргумента query."}
-{"ts": "2026-11-10T06:48:22", "event": "observation", "step": 3, "tool": "search_regulations", "result": {"error": "Неверный тип аргумента query."}}
-{"ts": "2026-11-10T06:48:22", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 8}
-{"ts": "2026-11-10T06:48:25", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 2.03}
-{"ts": "2026-11-10T06:48:25", "event": "thought", "step": 4, "text": "Найти правило по чарджбэку для определения срока выдачи выписки."}
-{"ts": "2026-11-10T06:48:25", "event": "tool_guardrail", "step": 4, "tool": "search_regulations", "decision": "allow", "reason": "Вызов разрешён."}
-{"ts": "2026-11-10T06:48:25", "event": "observation", "step": 4, "tool": "search_regulations", "result": {"found": [{"code": "Р-30", "title": "Регламент Р-30 «Чарджбэк»", "text": "# Регламент Р-30 «Чарджбэк»\n\nСпор по карте оформляется через банк-эмитент; сервис готовит выписку по операциям за 2 рабочих дня. Ассистент сообщает клиенту порядок действий в банке и передаёт запрос на выписку оператору."}]}}
-{"ts": "2026-11-10T06:48:25", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 10}
-{"ts": "2026-11-10T06:48:27", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 2.13}
-{"ts": "2026-11-10T06:48:27", "event": "answer", "answer": "В соответствии с регламентом Р-30 «Чарджбэк», выписка будет готова в течение 2 рабочих дней после получения запроса. Если запрос ушёл сегодня, 14 сентября 2026 года, выписка будет готова к 16 сентября 2026 года.", "decision": "answer", "steps": 5, "tool_calls": 1, "tools_used": ["search_regulations"], "tokens": 8254}
+{"ts": "2026-11-10T19:53:09", "event": "request", "request_id": "m13", "text": "Клиент просит выписку для чарджбэка. Через сколько рабочих дней она будет готова, если запрос ушёл сегодня, 14 сентября 2026?"}
+{"ts": "2026-11-10T19:53:09", "event": "input_guardrail", "decision": "allow", "reason": "Обращение допустимо."}
+{"ts": "2026-11-10T19:53:09", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 2}
+{"ts": "2026-11-10T19:53:10", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 0.95}
+{"ts": "2026-11-10T19:53:10", "event": "thought", "step": 1, "text": "Модель не указала обоснование; вызов проверяется guardrail."}
+{"ts": "2026-11-10T19:53:10", "event": "tool_guardrail", "step": 1, "tool": "business_days_after", "decision": "deny", "reason": "Сначала найди правило чарджбэка через search_regulations."}
+{"ts": "2026-11-10T19:53:10", "event": "observation", "step": 1, "tool": "business_days_after", "result": {"error": "Сначала найди правило чарджбэка через search_regulations."}}
+{"ts": "2026-11-10T19:53:10", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 4}
+{"ts": "2026-11-10T19:53:11", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 1.52}
+{"ts": "2026-11-10T19:53:11", "event": "thought", "step": 2, "text": "Модель не указала обоснование; вызов проверяется guardrail."}
+{"ts": "2026-11-10T19:53:11", "event": "tool_guardrail", "step": 2, "tool": "search_regulations", "decision": "allow", "reason": "Вызов разрешён."}
+{"ts": "2026-11-10T19:53:11", "event": "observation", "step": 2, "tool": "search_regulations", "result": {"found": [{"code": "Р-30", "title": "Регламент Р-30 «Чарджбэк»", "text": "# Регламент Р-30 «Чарджбэк»\n\nСпор по карте оформляется через банк-эмитент; сервис готовит выписку по операциям за 2 рабочих дня. Ассистент сообщает клиенту порядок действий в банке и передаёт запрос на выписку оператору."}, {"code": "Р-05", "title": "Регламент Р-05 «Срок зачисления возврата»", "text": "# Регламент Р-05 «Срок зачисления возврата»\n\nПосле того как возврат оформлен в шлюзе партнёра, деньги поступают на карту клиента в течение 3 рабочих дней. Срок отсчитывается со следующего рабочего дня после оформления. Если по истечении срока деньги не поступили, обращение передаётся оператору для запроса в банк-эмитент."}]}}
+{"ts": "2026-11-10T19:53:11", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 6}
+{"ts": "2026-11-10T19:53:14", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 2.82}
+{"ts": "2026-11-10T19:53:14", "event": "correction", "step": 3, "missing_tools": ["business_days_after"], "attempt": 1}
+{"ts": "2026-11-10T19:53:14", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 8}
+{"ts": "2026-11-10T19:53:15", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 0.98}
+{"ts": "2026-11-10T19:53:15", "event": "thought", "step": 4, "text": "Модель не указала обоснование; вызов проверяется guardrail."}
+{"ts": "2026-11-10T19:53:15", "event": "tool_guardrail", "step": 4, "tool": "business_days_after", "decision": "allow", "reason": "Вызов разрешён."}
+{"ts": "2026-11-10T19:53:18", "event": "api_call", "method": "GET", "path": "/20260915", "params": {}, "status": 200, "attempt": 1, "took": 2.68}
+{"ts": "2026-11-10T19:53:18", "event": "api_call", "method": "GET", "path": "/20260916", "params": {}, "status": 200, "attempt": 1, "took": 0.81}
+{"ts": "2026-11-10T19:53:18", "event": "observation", "step": 4, "tool": "business_days_after", "result": {"date": "2026-09-16", "text": "16 сентября 2026"}}
+{"ts": "2026-11-10T19:53:18", "event": "llm_call", "model": "qwen2.5:7b", "url": "http://127.0.0.1:11434/v1", "messages": 10}
+{"ts": "2026-11-10T19:53:19", "event": "api_call", "method": "POST", "path": "/chat/completions", "params": {}, "status": 200, "attempt": 1, "took": 0.76}
+{"ts": "2026-11-10T19:53:19", "event": "answer", "answer": "Выписка для чарджбэка будет готова к 16 сентября 2026 года.", "decision": "answer", "steps": 5, "tool_calls": 2, "tools_used": ["search_regulations", "business_days_after"], "tokens": 8973}

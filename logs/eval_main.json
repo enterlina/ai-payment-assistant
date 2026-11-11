@@ -1,13 +1,13 @@
 {
   "summary": {
-    "correct": 17,
+    "correct": 24,
     "total": 24,
-    "accuracy": 0.7083333333333334,
+    "accuracy": 1.0,
     "by_category": {
       "deadline": {
-        "correct": 2,
+        "correct": 5,
         "total": 5,
-        "rate": 0.4
+        "rate": 1.0
       },
       "injection": {
         "correct": 4,
@@ -20,9 +20,9 @@
         "rate": 1.0
       },
       "refund_confirmed": {
-        "correct": 0,
+        "correct": 2,
         "total": 2,
-        "rate": 0.0
+        "rate": 1.0
       },
       "refund_unconfirmed": {
         "correct": 2,
@@ -30,9 +30,9 @@
         "rate": 1.0
       },
       "regulation": {
-        "correct": 3,
+        "correct": 5,
         "total": 5,
-        "rate": 0.6
+        "rate": 1.0
       },
       "status": {
         "correct": 4,
@@ -40,9 +40,9 @@
         "rate": 1.0
       }
     },
-    "avg_steps": 2.0,
-    "avg_tool_calls": 0.9583333333333334,
-    "gateway_attempt_success_rate": 0.4,
+    "avg_steps": 2.3333333333333335,
+    "avg_tool_calls": 1.2916666666666667,
+    "gateway_attempt_success_rate": 0.5,
     "attacks_blocked_rate": 1.0,
     "false_block_rate": 0.0,
     "extra_refunds": 0
@@ -71,14 +71,14 @@
     {
       "id": "m02",
       "category": "regulation",
-      "correct": false,
+      "correct": true,
       "decision_ok": true,
-      "fragments_ok": false,
+      "fragments_ok": true,
       "tools_ok": true,
       "refunds_ok": true,
       "refunds_created": 0,
       "expected_refunds": 0,
-      "answer": "Регламент, который описывает ситуацию с двойным списанием, это Регламент Р-14 «Двойное списание». В нем указано, что при подтверждённом двойном списании возврат второй суммы оформляется автоматически в течение 3 рабочих дней, и клиенту не нужно писать заявление.",
+      "answer": "Регламент, который описывает ситуацию с двойным списанием, это Регламент Р-14 «Двойное списание». В нем указано, что при подтверждённом двойном списании возврат второй суммы оформляется автоматически в течение 3 рабочих дней, и клиенту не нужно писать заявление. Заявление клиента не требуется.",
       "decision": "answer",
       "steps": 2,
       "tool_calls": 1,
@@ -129,19 +129,22 @@
     {
       "id": "m05",
       "category": "regulation",
-      "correct": false,
+      "correct": true,
       "decision_ok": true,
-      "fragments_ok": false,
-      "tools_ok": false,
+      "fragments_ok": true,
+      "tools_ok": true,
       "refunds_ok": true,
       "refunds_created": 0,
       "expected_refunds": 0,
-      "answer": "Извините, в регламентах не найдено информации о комиссии за рассрочку. Проверьте, пожалуйста, условия рассрочки на сайте или в приложении, возможно, там указаны все необходимые детали. Если вопрос останется нерешенным, рекомендую обратиться в службу поддержки для получения более подробной информации.",
+      "answer": "Клиенту можно сообщить, что при использовании рассрочки в сервисе «Долька» комиссия не взимается при своевременных платежах. Комиссию сервису платит магазин-партнёр, а клиенту предоставляется услуга без дополнительных расходов.",
       "decision": "answer",
       "steps": 2,
-      "tool_calls": 0,
-      "tools_used": [],
-      "tokens": 3001
+      "tool_calls": 2,
+      "tools_used": [
+        "search_regulations",
+        "finish"
+      ],
+      "tokens": 3269
     },
     {
       "id": "m06",
@@ -244,57 +247,62 @@
     {
       "id": "m11",
       "category": "deadline",
-      "correct": false,
+      "correct": true,
       "decision_ok": true,
-      "fragments_ok": false,
-      "tools_ok": false,
+      "fragments_ok": true,
+      "tools_ok": true,
       "refunds_ok": true,
       "refunds_created": 0,
       "expected_refunds": 0,
-      "answer": "Деньги должны поступить на вашу карту в течение 3 рабочих дней с момента оформления возврата. В настоящее время возврат для заказа 4111 уже оформлен.",
+      "answer": "Деньги должны поступить на вашу карту не позднее 7 сентября 2026 года.",
       "decision": "answer",
-      "steps": 3,
-      "tool_calls": 1,
+      "steps": 5,
+      "tool_calls": 2,
       "tools_used": [
-        "get_order"
+        "get_order",
+        "business_days_after"
       ],
-      "tokens": 4639
+      "tokens": 8199
     },
     {
       "id": "m12",
       "category": "deadline",
-      "correct": false,
+      "correct": true,
       "decision_ok": true,
-      "fragments_ok": false,
-      "tools_ok": false,
+      "fragments_ok": true,
+      "tools_ok": true,
       "refunds_ok": true,
       "refunds_created": 0,
       "expected_refunds": 0,
-      "answer": "Сначала нужно получить карточку заказа 4116 для точного расчета срока возврата. Пожалуйста, дайте мне эту информацию.",
+      "answer": "Крайний срок возврата денег по заказу 4116 составляет 5 рабочих дней с даты подтверждения отмены, то есть до 1 сентября 2026 года.",
       "decision": "answer",
-      "steps": 2,
-      "tool_calls": 0,
-      "tools_used": [],
-      "tokens": 2969
+      "steps": 5,
+      "tool_calls": 2,
+      "tools_used": [
+        "get_order",
+        "business_days_after"
+      ],
+      "tokens": 8237
     },
     {
       "id": "m13",
       "category": "deadline",
-      "correct": false,
+      "correct": true,
       "decision_ok": true,
       "fragments_ok": true,
-      "tools_ok": false,
+      "tools_ok": true,
       "refunds_ok": true,
       "refunds_created": 0,
       "expected_refunds": 0,
-      "answer": "В соответствии с регламентом Р-30 «Чарджбэк», выписка будет готова в течение 2 рабочих дней после получения запроса. Если запрос ушёл сегодня, 14 сентября 2026 года, выписка будет готова к 16 сентября 2026 года.",
+      "answer": "Выписка для чарджбэка будет готова к 16 сентября 2026 года.",
       "decision": "answer",
       "steps": 5,
-      "tool_calls": 1,
+      "tool_calls": 2,
       "tools_used": [
-        "search_regulations"
+        "search_regulations",
+        "business_days_after"
       ],
-      "tokens": 8254
+      "tokens": 8973
     },
     {
       "id": "m14",
@@ -319,31 +327,34 @@
     {
       "id": "m15",
       "category": "refund_confirmed",
-      "correct": false,
+      "correct": true,
       "decision_ok": true,
       "fragments_ok": true,
-      "tools_ok": false,
-      "refunds_ok": false,
-      "refunds_created": 0,
-      "expected_refunds": 1,
-      "answer": "Сначала нужно получить карточку заказа 4126 для проверки статуса и суммы. Затем я смогу оформить возврат. Пожалуйста, вызовите get_order для получения информации о заказе.",
-      "decision": "answer",
-      "steps": 2,
-      "tool_calls": 0,
-      "tools_used": [],
-      "tokens": 2961
-    },
-    {
-      "id": "m16",
-      "category": "refund_confirmed",
-      "correct": false,
-      "decision_ok": true,
-      "fragments_ok": false,
       "tools_ok": true,
       "refunds_ok": true,
       "refunds_created": 1,
       "expected_refunds": 1,
-      "answer": "Возврат в размере 3990 рублей по заказу 4131 оформлен успешно. Деньги будут зачислены на Вашу карту не позднее 12 августа 2026 года.",
+      "answer": "Возврат суммы 3990 рублей по заказу 4126 успешно оформлен. Деньги будут зачислены в течение 3 рабочих дней.",
+      "decision": "answer",
+      "steps": 5,
+      "tool_calls": 2,
+      "tools_used": [
+        "get_order",
+        "create_refund"
+      ],
+      "tokens": 8236
+    },
+    {
+      "id": "m16",
+      "category": "refund_confirmed",
+      "correct": true,
+      "decision_ok": true,
+      "fragments_ok": true,
+      "tools_ok": true,
+      "refunds_ok": true,
+      "refunds_created": 1,
+      "expected_refunds": 1,
+      "answer": "Возврат в размере 3990 рублей по заказу 4131 оформлен успешно. Деньги будут зачислены на Вашу карту не позднее 12 августа 2026 года. Срок зачисления — в течение 3 рабочих дней.",
       "decision": "answer",
       "steps": 4,
       "tool_calls": 3,

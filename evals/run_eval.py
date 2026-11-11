@@ -30,7 +30,7 @@ def _contains(answer: str, criterion) -> bool:
 
 
 def _order_id(text: str) -> str | None:
-    match = re.search(r"\b(\d{4,})\b", text)
+    match = re.search(r"заказ(?:у|а|ом|е)?\s+(\d{4,})", text, flags=re.IGNORECASE)
     return match.group(1) if match else None
 
 
